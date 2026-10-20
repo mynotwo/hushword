@@ -5,17 +5,17 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>FlowType</string>
+    <string>Hushword</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleExecutable</key>
-    <string>FlowType</string>
+    <string>Hushword</string>
     <key>CFBundleIdentifier</key>
-    <string>com.local.flowtype</string>
+    <string>com.local.hushword</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>FlowType</string>
+    <string>Hushword</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -31,11 +31,11 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSMicrophoneUsageDescription</key>
-    <string>FlowType uses the microphone to turn your speech into text.</string>
+    <string>Hushword uses the microphone to turn your speech into text.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
-    <string>FlowType uses Apple Speech Recognition to transcribe your dictation.</string>
+    <string>Hushword uses Apple Speech Recognition to transcribe your dictation.</string>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2026 FlowType. All rights reserved.</string>
+    <string>Copyright © 2026 Hushword. All rights reserved.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

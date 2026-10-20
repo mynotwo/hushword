@@ -5,12 +5,12 @@ APP_PATH="${1:-}"
 EXPECTED_BUNDLE_ID="${2:-}"
 
 if [[ -z "$APP_PATH" || -z "$EXPECTED_BUNDLE_ID" ]]; then
-  echo "Usage: $0 /path/to/FlowType.app com.example.flowtype" >&2
+  echo "Usage: $0 /path/to/Hushword.app com.example.hushword" >&2
   exit 64
 fi
 
 PLIST="$APP_PATH/Contents/Info.plist"
-EXECUTABLE="$APP_PATH/Contents/MacOS/FlowType"
+EXECUTABLE="$APP_PATH/Contents/MacOS/Hushword"
 SPARKLE="$APP_PATH/Contents/Frameworks/Sparkle.framework"
 
 [[ -d "$APP_PATH" ]] || {
@@ -35,11 +35,11 @@ ACTUAL_BUNDLE_ID="$(
 }
 
 for key in \
-  FlowTypeWhisperModelURL \
+  HushwordWhisperModelURL \
   SUFeedURL \
   SUPublicEDKey \
-  FlowTypeSupportURL \
-  FlowTypePrivacyURL; do
+  HushwordSupportURL \
+  HushwordPrivacyURL; do
   value="$(/usr/libexec/PlistBuddy -c "Print :$key" "$PLIST")"
   [[ "$value" == https://* ]] || {
     if [[ "$key" == "SUPublicEDKey" && -n "$value" ]]; then
@@ -51,12 +51,12 @@ for key in \
 done
 
 file "$EXECUTABLE" | grep -q 'arm64' || {
-  echo "FlowType is not an Apple Silicon build." >&2
+  echo "Hushword is not an Apple Silicon build." >&2
   exit 1
 }
 otool -l "$EXECUTABLE" \
   | grep -q '@executable_path/../Frameworks' || {
-  echo "FlowType cannot locate embedded frameworks." >&2
+  echo "Hushword cannot locate embedded frameworks." >&2
   exit 1
 }
 

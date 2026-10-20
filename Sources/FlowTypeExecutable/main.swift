@@ -1,3 +1,0 @@
-import FlowTypeAppKit
-
-FlowTypeApp.main()

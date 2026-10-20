@@ -4,19 +4,19 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 required_variables=(
-  FLOWTYPE_BUNDLE_ID
-  FLOWTYPE_VERSION
-  FLOWTYPE_BUILD_NUMBER
-  FLOWTYPE_SIGN_IDENTITY
-  FLOWTYPE_NOTARY_PROFILE
-  FLOWTYPE_MODEL_URL
-  FLOWTYPE_UPDATE_FEED_URL
-  FLOWTYPE_UPDATE_DOWNLOAD_PREFIX
-  FLOWTYPE_SPARKLE_PUBLIC_KEY
-  FLOWTYPE_SUPPORT_URL
-  FLOWTYPE_PRIVACY_URL
-  FLOWTYPE_SUPPORT_EMAIL
-  FLOWTYPE_DOWNLOAD_URL
+  HUSHWORD_BUNDLE_ID
+  HUSHWORD_VERSION
+  HUSHWORD_BUILD_NUMBER
+  HUSHWORD_SIGN_IDENTITY
+  HUSHWORD_NOTARY_PROFILE
+  HUSHWORD_MODEL_URL
+  HUSHWORD_UPDATE_FEED_URL
+  HUSHWORD_UPDATE_DOWNLOAD_PREFIX
+  HUSHWORD_SPARKLE_PUBLIC_KEY
+  HUSHWORD_SUPPORT_URL
+  HUSHWORD_PRIVACY_URL
+  HUSHWORD_SUPPORT_EMAIL
+  HUSHWORD_DOWNLOAD_URL
 )
 
 for variable in "${required_variables[@]}"; do
@@ -26,65 +26,65 @@ for variable in "${required_variables[@]}"; do
   fi
 done
 
-if [[ "$FLOWTYPE_BUNDLE_ID" == "com.local.flowtype" ]]; then
+if [[ "$HUSHWORD_BUNDLE_ID" == "com.local.hushword" ]]; then
   echo "Refusing to release with the development bundle ID." >&2
   exit 64
 fi
-if [[ "$FLOWTYPE_SIGN_IDENTITY" != "Developer ID Application:"* ]]; then
-  echo "FLOWTYPE_SIGN_IDENTITY must be a Developer ID Application identity." >&2
+if [[ "$HUSHWORD_SIGN_IDENTITY" != "Developer ID Application:"* ]]; then
+  echo "HUSHWORD_SIGN_IDENTITY must be a Developer ID Application identity." >&2
   exit 64
 fi
 for url_variable in \
-  FLOWTYPE_MODEL_URL \
-  FLOWTYPE_UPDATE_FEED_URL \
-  FLOWTYPE_UPDATE_DOWNLOAD_PREFIX \
-  FLOWTYPE_SUPPORT_URL \
-  FLOWTYPE_PRIVACY_URL \
-  FLOWTYPE_DOWNLOAD_URL; do
+  HUSHWORD_MODEL_URL \
+  HUSHWORD_UPDATE_FEED_URL \
+  HUSHWORD_UPDATE_DOWNLOAD_PREFIX \
+  HUSHWORD_SUPPORT_URL \
+  HUSHWORD_PRIVACY_URL \
+  HUSHWORD_DOWNLOAD_URL; do
   if [[ "${!url_variable}" != https://* ]]; then
     echo "$url_variable must use HTTPS." >&2
     exit 64
   fi
 done
-if [[ "$FLOWTYPE_SUPPORT_EMAIL" != *@*.* ]]; then
-  echo "FLOWTYPE_SUPPORT_EMAIL is not a valid support address." >&2
+if [[ "$HUSHWORD_SUPPORT_EMAIL" != *@*.* ]]; then
+  echo "HUSHWORD_SUPPORT_EMAIL is not a valid support address." >&2
   exit 64
 fi
 
 export "${required_variables[@]}"
-export FLOWTYPE_SPARKLE_KEY_ACCOUNT
+export HUSHWORD_SPARKLE_KEY_ACCOUNT
 
 cd "$ROOT"
 ./scripts/build_app.sh
 ./scripts/verify_distribution.sh \
-  "$ROOT/dist/FlowType.app" \
-  "$FLOWTYPE_BUNDLE_ID"
+  "$ROOT/dist/Hushword.app" \
+  "$HUSHWORD_BUNDLE_ID"
 
-NOTARY_ZIP="$ROOT/dist/FlowType-$FLOWTYPE_VERSION-notarization.zip"
+NOTARY_ZIP="$ROOT/dist/Hushword-$HUSHWORD_VERSION-notarization.zip"
 rm -f "$NOTARY_ZIP"
 ditto -c -k --sequesterRsrc --keepParent \
-  "$ROOT/dist/FlowType.app" \
+  "$ROOT/dist/Hushword.app" \
   "$NOTARY_ZIP"
 xcrun notarytool submit "$NOTARY_ZIP" \
-  --keychain-profile "$FLOWTYPE_NOTARY_PROFILE" \
+  --keychain-profile "$HUSHWORD_NOTARY_PROFILE" \
   --wait
 rm -f "$NOTARY_ZIP"
-xcrun stapler staple "$ROOT/dist/FlowType.app"
-xcrun stapler validate "$ROOT/dist/FlowType.app"
-spctl -a -vv -t exec "$ROOT/dist/FlowType.app"
+xcrun stapler staple "$ROOT/dist/Hushword.app"
+xcrun stapler validate "$ROOT/dist/Hushword.app"
+spctl -a -vv -t exec "$ROOT/dist/Hushword.app"
 
-RELEASE_ROOT="$ROOT/dist/release-$FLOWTYPE_VERSION"
+RELEASE_ROOT="$ROOT/dist/release-$HUSHWORD_VERSION"
 DMG_ROOT="$RELEASE_ROOT/dmg"
 UPDATES_ROOT="$RELEASE_ROOT/updates"
-DMG_PATH="$ROOT/dist/FlowType-$FLOWTYPE_VERSION.dmg"
+DMG_PATH="$ROOT/dist/Hushword-$HUSHWORD_VERSION.dmg"
 
 rm -rf "$RELEASE_ROOT" "$DMG_PATH"
 mkdir -p "$DMG_ROOT" "$UPDATES_ROOT"
-ditto "$ROOT/dist/FlowType.app" "$DMG_ROOT/FlowType.app"
+ditto "$ROOT/dist/Hushword.app" "$DMG_ROOT/Hushword.app"
 ln -s /Applications "$DMG_ROOT/Applications"
 
 hdiutil create \
-  -volname "FlowType $FLOWTYPE_VERSION" \
+  -volname "Hushword $HUSHWORD_VERSION" \
   -srcfolder "$DMG_ROOT" \
   -ov \
   -format UDZO \
@@ -92,18 +92,18 @@ hdiutil create \
 codesign \
   --force \
   --timestamp \
-  --sign "$FLOWTYPE_SIGN_IDENTITY" \
+  --sign "$HUSHWORD_SIGN_IDENTITY" \
   "$DMG_PATH"
 xcrun notarytool submit "$DMG_PATH" \
-  --keychain-profile "$FLOWTYPE_NOTARY_PROFILE" \
+  --keychain-profile "$HUSHWORD_NOTARY_PROFILE" \
   --wait
 xcrun stapler staple "$DMG_PATH"
 xcrun stapler validate "$DMG_PATH"
 spctl -a -vv -t open --context context:primary-signature "$DMG_PATH"
 
-UPDATE_ZIP="$UPDATES_ROOT/FlowType-$FLOWTYPE_VERSION.zip"
+UPDATE_ZIP="$UPDATES_ROOT/Hushword-$HUSHWORD_VERSION.zip"
 ditto -c -k --sequesterRsrc --keepParent \
-  "$ROOT/dist/FlowType.app" \
+  "$ROOT/dist/Hushword.app" \
   "$UPDATE_ZIP"
 
 GENERATE_APPCAST="$(
@@ -115,9 +115,9 @@ if [[ -z "$GENERATE_APPCAST" ]]; then
 fi
 
 "$GENERATE_APPCAST" \
-  --account "${FLOWTYPE_SPARKLE_KEY_ACCOUNT:-flowtype}" \
-  --download-url-prefix "$FLOWTYPE_UPDATE_DOWNLOAD_PREFIX" \
-  --link "$FLOWTYPE_SUPPORT_URL" \
+  --account "${HUSHWORD_SPARKLE_KEY_ACCOUNT:-hushword}" \
+  --download-url-prefix "$HUSHWORD_UPDATE_DOWNLOAD_PREFIX" \
+  --link "$HUSHWORD_SUPPORT_URL" \
   --maximum-versions 5 \
   --maximum-deltas 2 \
   "$UPDATES_ROOT"

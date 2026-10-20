@@ -1,4 +1,4 @@
-# FlowType Context
+# Hushword Context
 
 ## Domain Language
 
@@ -11,7 +11,7 @@
 - **Terminology Hint** — a repeated technical term from local history that may bias recognition but can never replace transcript text.
 - **Paste Target** — the last regular external application selected before a Dictation Session and locked until insertion completes.
 - **Presentation Snapshot** — the consistent recording flag, HUD phase, and microphone level published to AppKit.
-- **Local Model Server** — a supervised loopback HTTP process whose lifecycle is owned by FlowType.
+- **Local Model Server** — a supervised loopback HTTP process whose lifecycle is owned by Hushword.
 - **Whisper Asset** — the pinned Q5 model downloaded to Application Support and accepted only after byte-count and SHA-256 verification.
 - **Whisper Runtime** — the self-contained, chip-selected `whisper.cpp` server bundled inside the app.
 
@@ -53,7 +53,7 @@ LocalHTTPServerProcess
 - `WhisperRuntimeLocator` selects the bundled M1, M2/M3, or M4 static runtime before considering development-only Homebrew paths.
 - `PasteTargetTracker` is the only module that observes `NSWorkspace` to select and lock the Paste Target.
 - `DictationPresentation` is the only value AppKit uses to synchronize the menu-bar icon and HUD.
-- Local development keeps the designated requirement `com.local.flowtype`;
+- Local development keeps the designated requirement `com.local.hushword`;
   customer releases inject one permanent, owned bundle identifier and must
   never change it after public distribution.
 - Normal dictation has no automatic Qwen adapter. Any future local polish path requires measured quality and resource validation before implementation.
@@ -70,8 +70,8 @@ LocalHTTPServerProcess
 ## Verification
 
 ```bash
-swift run FlowTypeCoreTests
-swift run FlowTypeAppKitTests
-swift build -c release --product FlowType
+swift run HushwordCoreTests
+swift run HushwordAppKitTests
+swift build -c release --product Hushword
 ./scripts/install.sh
 ```

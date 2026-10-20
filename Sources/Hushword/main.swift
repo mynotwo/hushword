@@ -1,0 +1,1 @@
+HushwordApp.main()

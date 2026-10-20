@@ -1,6 +1,6 @@
-# FlowType
+# Hushword
 
-FlowType is a native macOS menu bar dictation app inspired by the workflow of Typeless. It is an independent implementation and does not use Typeless code, branding, or services.
+Hushword is a native macOS menu bar dictation app inspired by the workflow of Typeless. It is an independent implementation and does not use Typeless code, branding, or services.
 
 ## Current MVP
 
@@ -23,21 +23,21 @@ FlowType is a native macOS menu bar dictation app inspired by the workflow of Ty
 - Local Correction Memory learns only narrow edits made directly after paste; manual entries always win
 - Repeated technical terms from local history are recognition hints, never automatic replacements
 - Copies or pastes the final transcript into the app that was active before dictation
-- Local-only history and settings under `~/Library/Application Support/FlowType`
+- Local-only history and settings under `~/Library/Application Support/Hushword`
 - Whisper prewarms when recording starts, sleeps after two idle minutes, and falls back to Apple when unavailable
 - Optional `Auto / Claude / Codex / Coco / Off` Agent selection for the post-dictation shortcut
 - Signed automatic updates through Sparkle when release metadata is configured
 
 ## Install
 
-FlowType currently targets Apple Silicon Macs running macOS 13.3 or newer.
+Hushword currently targets Apple Silicon Macs running macOS 13.3 or newer.
 
 ```bash
 ./scripts/install.sh
 ```
 
 The script builds the app and its pinned `whisper.cpp` runtime, ad-hoc signs the
-bundle, copies it to `/Applications/FlowType.app`, and opens it. Building from
+bundle, copies it to `/Applications/Hushword.app`, and opens it. Building from
 source requires Swift, CMake, and the macOS Command Line Tools. Running the
 installed app does not require Homebrew or CMake.
 
@@ -47,7 +47,7 @@ On first use, macOS asks for:
 2. Speech Recognition access
 3. Accessibility access for automatic paste
 
-If Accessibility is denied, FlowType still copies the result to the clipboard.
+If Accessibility is denied, Hushword still copies the result to the clipboard.
 
 For a small private beta, `./scripts/package_beta.sh` creates an ad-hoc signed
 DMG. Testers must use macOS's explicit Open action on first launch. This beta
@@ -57,10 +57,10 @@ artifact is not suitable for public sale.
 
 ```bash
 # Core behavior tests
-swift run FlowTypeCoreTests
+swift run HushwordCoreTests
 
 # App orchestration and local-process integration tests
-swift run FlowTypeAppKitTests
+swift run HushwordAppKitTests
 
 # Debug build
 swift build
@@ -95,7 +95,7 @@ never written into the repository.
 Sparkle update signing keys can be initialized once with:
 
 ```bash
-.build/artifacts/sparkle/Sparkle/bin/generate_keys --account flowtype
+.build/artifacts/sparkle/Sparkle/bin/generate_keys --account hushword
 ```
 
 Before public distribution, install the final DMG on a clean Apple Silicon Mac
@@ -135,10 +135,10 @@ This MVP covers the core system-wide dictation workflow. It does not include acc
 
 ## Processing and privacy
 
-FlowType records one complete local WAV, then provides that same recording to
+Hushword records one complete local WAV, then provides that same recording to
 Apple Speech and a prewarmed local Whisper Q5 recognizer in parallel. Whisper
-runs on this Mac. Apple Speech may use Apple's service because FlowType does not
-force on-device-only recognition. FlowType selects between their complete
+runs on this Mac. Apple Speech may use Apple's service because Hushword does not
+force on-device-only recognition. Hushword selects between their complete
 transcripts with lightweight deterministic rules. On first launch, the 574 MB
 Q5 model downloads and is verified by size and SHA-256 in the background; Apple
 Speech remains available during that setup. Normal dictation has no Qwen
@@ -147,10 +147,10 @@ adapter; Q8 and Qwen are not required or loaded.
 Normal dictation does not wait for an Agent. Manual rewrite sends the displayed
 text to the selected external provider. After local dictation has been inserted,
 holding `Fn` for half a second sends that transcript to the Agent selected in
-Settings and replaces only the unchanged insertion FlowType recorded. `Auto`
+Settings and replaces only the unchanged insertion Hushword recorded. `Auto`
 uses a prewarmed Claude Haiku session when Claude is installed, otherwise a
 dedicated ephemeral Codex app-server session. If the target or text can no
-longer be verified safely, FlowType copies the rewrite and leaves the existing
-text alone. FlowType stops a long-press rewrite that cannot finish within three
+longer be verified safely, Hushword copies the rewrite and leaves the existing
+text alone. Hushword stops a long-press rewrite that cannot finish within three
 seconds, leaving the original text unchanged. Coco remains available as a
 slower manual full-Agent rewrite.

@@ -1,0 +1,3 @@
+import HushwordAppKit
+
+HushwordApp.main()

@@ -3,15 +3,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "FlowType",
+    name: "Hushword",
     platforms: [
         .macOS("13.3"),
     ],
     products: [
-        .library(name: "FlowTypeCore", targets: ["FlowTypeCore"]),
-        .executable(name: "FlowType", targets: ["FlowType"]),
-        .executable(name: "FlowTypeCoreTests", targets: ["FlowTypeCoreTests"]),
-        .executable(name: "FlowTypeAppKitTests", targets: ["FlowTypeAppKitTests"]),
+        .library(name: "HushwordCore", targets: ["HushwordCore"]),
+        .executable(name: "Hushword", targets: ["Hushword"]),
+        .executable(name: "HushwordCoreTests", targets: ["HushwordCoreTests"]),
+        .executable(name: "HushwordAppKitTests", targets: ["HushwordAppKitTests"]),
     ],
     dependencies: [
         .package(
@@ -20,20 +20,20 @@ let package = Package(
         ),
     ],
     targets: [
-        .target(name: "FlowTypeCore"),
+        .target(name: "HushwordCore"),
         .target(
-            name: "FlowTypeAppKit",
+            name: "HushwordAppKit",
             dependencies: [
-                "FlowTypeCore",
+                "HushwordCore",
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
-            path: "Sources/FlowType",
+            path: "Sources/Hushword",
             exclude: ["main.swift"]
         ),
         .executableTarget(
-            name: "FlowType",
-            dependencies: ["FlowTypeAppKit"],
-            path: "Sources/FlowTypeExecutable",
+            name: "Hushword",
+            dependencies: ["HushwordAppKit"],
+            path: "Sources/HushwordExecutable",
             linkerSettings: [
                 .unsafeFlags([
                     "-Xlinker", "-rpath",
@@ -42,13 +42,13 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "FlowTypeCoreTests",
-            dependencies: ["FlowTypeCore"]
+            name: "HushwordCoreTests",
+            dependencies: ["HushwordCore"]
         ),
         .executableTarget(
-            name: "FlowTypeAppKitTests",
-            dependencies: ["FlowTypeAppKit", "FlowTypeCore"],
-            path: "Tests/FlowTypeAppKitTests"
+            name: "HushwordAppKitTests",
+            dependencies: ["HushwordAppKit", "HushwordCore"],
+            path: "Tests/HushwordAppKitTests"
         ),
     ],
     swiftLanguageModes: [.v5]
