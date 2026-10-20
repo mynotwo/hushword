@@ -1,0 +1,19 @@
+version: 1
+scope:
+  allowed_paths:
+  - '**'
+  forbidden_paths:
+  - .agent-harness/**
+dependencies:
+  allow_changes: false
+  manifests:
+  - Package.swift
+  - Package.resolved
+verification:
+  commands:
+  - swift run FlowTypeCoreTests
+  - swift run FlowTypeAppKitTests
+  - swift build -c release --product FlowType
+  - git diff --check
+artifacts:
+  required: []

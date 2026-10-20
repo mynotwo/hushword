@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Support — FlowType</title>
+  <link rel="icon" href="app-icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="shell"><nav><a class="brand" href="index.html"><img src="app-icon.svg" alt="">FlowType</a><div class="nav-links"><a href="{{PRIVACY_URL}}">Privacy</a><a class="button" href="{{DOWNLOAD_URL}}">Download</a></div></nav></header>
+  <main class="legal shell">
+    <h1>FlowType support.</h1>
+    <p class="meta">FlowType v{{VERSION}} supports Apple Silicon Macs running macOS 13.3 or later. Intel Macs are not supported.</p>
+    <h2>FlowType cannot hear you</h2>
+    <p>Open System Settings → Privacy &amp; Security → Microphone and enable FlowType. Then quit and reopen the app.</p>
+    <h2>The transcript is copied but not inserted</h2>
+    <p>Enable FlowType under Privacy &amp; Security → Accessibility. Return to the target text field before starting the next dictation.</p>
+    <h2>The local model failed to download</h2>
+    <p>Open FlowType Settings and select Retry. The 574 MB model requires an internet connection only for the initial verified download.</p>
+    <h2>Hold Fn does nothing</h2>
+    <p>Normal dictation does not require an Agent. Optional rewrite requires Claude, Codex, or Coco to be installed and signed in. Check the Agent status in FlowType Settings.</p>
+    <h2>Contact</h2>
+    <p>Email <a href="mailto:{{SUPPORT_EMAIL}}">{{SUPPORT_EMAIL}}</a> with your macOS version, Mac model, FlowType version, and the exact error shown in Settings.</p>
+  </main>
+  <footer class="shell"><span>FlowType v{{VERSION}}</span><div><a href="index.html">Home</a><a href="{{PRIVACY_URL}}">Privacy</a></div></footer>
+</body>
+</html>

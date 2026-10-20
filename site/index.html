@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FlowType is fast voice dictation for Apple Silicon Macs, with local Whisper and optional Agent rewrite.">
+  <title>FlowType — Speak naturally. Type anywhere.</title>
+  <link rel="icon" href="app-icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="shell">
+    <nav>
+      <a class="brand" href="index.html"><img src="app-icon.svg" alt="">FlowType</a>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="{{PRIVACY_URL}}">Privacy</a>
+        <a class="button" href="{{DOWNLOAD_URL}}">Download</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero shell">
+      <div>
+        <p class="eyebrow">Voice input for macOS</p>
+        <h1>Speak naturally.<br>Type anywhere.</h1>
+        <p class="lede">Tap Fn to dictate into any app. Local Whisper adds private, high-accuracy recognition.</p>
+        <div class="actions">
+          <a class="button" href="{{DOWNLOAD_URL}}">Download v{{VERSION}}</a>
+          <a class="button secondary" href="#privacy">How privacy works</a>
+        </div>
+        <p class="compatibility">Apple Silicon only · macOS 13.3 or later · 574 MB model download</p>
+      </div>
+
+      <div class="app-window" aria-label="FlowType recording interface preview">
+        <div class="window-bar"><i></i><i></i><i></i></div>
+        <div class="window-body">
+          <div class="status"><span>Tap Fn again to finish</span><strong>Listening</strong></div>
+          <div class="waveform" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <p class="transcript">FlowType records the complete thought, then inserts the final transcript where you were typing.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="proof shell" aria-label="Product facts">
+      <div><strong>One key</strong><span>Tap Fn to start. Tap again to finish.</span></div>
+      <div><strong>Local Whisper</strong><span>The high-accuracy model runs on your Mac.</span></div>
+      <div><strong>Bring your own Agent</strong><span>Optional rewrite uses your signed-in provider.</span></div>
+    </section>
+
+    <section class="section shell" id="how">
+      <h2>Designed to disappear into your workflow.</h2>
+      <p>No floating editor and no copy-paste ritual. FlowType returns to the app you were using and inserts the transcript.</p>
+      <div class="steps">
+        <article class="step"><b>1</b><h3>Tap Fn</h3><p>Start recording without leaving the active text field.</p></article>
+        <article class="step"><b>2</b><h3>Speak normally</h3><p>A small HUD follows your microphone without taking focus.</p></article>
+        <article class="step"><b>3</b><h3>Tap Fn again</h3><p>FlowType recognizes the complete recording and inserts it.</p></article>
+      </div>
+    </section>
+
+    <section class="section shell" id="privacy">
+      <h2>Local first, honest about the cloud.</h2>
+      <p>FlowType does not pretend every feature is offline. You choose which recognition and rewrite providers to use.</p>
+      <div class="privacy-strip">
+        <article>
+          <h3>Stays on this Mac</h3>
+          <p>Whisper recognition, the personal dictionary, correction memory, history, and local timing diagnostics.</p>
+        </article>
+        <article>
+          <h3>May use a provider</h3>
+          <p>Apple Speech may use Apple's service. Optional Agent rewrite sends the selected transcript to your chosen Agent.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell">
+    <span>FlowType v{{VERSION}} · Apple Silicon</span>
+    <div>
+      <a href="{{SUPPORT_URL}}">Support</a>
+      <a href="{{PRIVACY_URL}}">Privacy</a>
+      <a href="mailto:{{SUPPORT_EMAIL}}">{{SUPPORT_EMAIL}}</a>
+    </div>
+  </footer>
+</body>
+</html>

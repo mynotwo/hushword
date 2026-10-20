@@ -1,0 +1,1 @@
+FlowTypeApp.main()
