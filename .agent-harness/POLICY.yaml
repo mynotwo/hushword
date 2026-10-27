@@ -11,9 +11,13 @@ dependencies:
   - Package.resolved
 verification:
   commands:
-  - swift run FlowTypeCoreTests
-  - swift run FlowTypeAppKitTests
-  - swift build -c release --product FlowType
-  - git diff --check
+  - name: core-tests
+    run: swift run HushwordCoreTests
+  - name: appkit-tests
+    run: swift run HushwordAppKitTests
+  - name: release-build
+    run: swift build -c release --product Hushword
+  - name: whitespace
+    run: git diff --check
 artifacts:
   required: []

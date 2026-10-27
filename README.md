@@ -1,45 +1,72 @@
 # Hushword
 
-Hushword is a native macOS menu bar dictation app inspired by the workflow of Typeless. It is an independent implementation and does not use Typeless code, branding, or services.
+Speak, then get back to what you were writing. Hushword is a native macOS menu
+bar dictation app that inserts your transcript into the app you were using.
+It combines local Whisper with Apple Speech, with an optional Agent shortcut
+when you want a rewrite after dictation.
 
-## Current MVP
+**Apple Silicon · macOS 13.3+ · Build from source**
 
-- Tap `Fn` to start dictation and tap it again to stop and insert
-- Hold `Fn` for half a second after insertion for a fast configurable Agent rewrite
-- `Option + Space` remains available as an alternate shortcut
-- `Option + Shift + Space` remains available as an alternate rewrite shortcut
-- Compact bottom HUD with a microphone-driven waveform, processing spinner, and completion state without taking focus
-- Records the complete utterance before Apple Speech and local Whisper Q5 recognize the same WAV in parallel
-- Chinese, English, Japanese, and Korean presets with mixed Chinese-English terminology
-- Whole-recording recognition protects sentence endings instead of selecting streaming fragments
-- Recognizer-owned sentence boundaries plus conservative Apple-to-Whisper punctuation transfer
-- Lightweight local selection between Apple and Whisper without starting a text-generation model
-- Prefers Apple for short Chinese disagreements and Whisper for mixed-language terminology
-- Self-contained Apple Silicon Whisper runtime; customer Macs do not need Homebrew
-- Verified Q5 model download runs in the background while Apple Speech stays available
-- First-run setup explains shortcuts and requests each permission explicitly
-- Download percentage, clear failure state, and one-click local-model retry
-- Personal dictionary with `spoken form = preferred spelling`
-- Local Correction Memory learns only narrow edits made directly after paste; manual entries always win
-- Repeated technical terms from local history are recognition hints, never automatic replacements
-- Copies or pastes the final transcript into the app that was active before dictation
-- Local-only history and settings under `~/Library/Application Support/Hushword`
-- Whisper prewarms when recording starts, sleeps after two idle minutes, and falls back to Apple when unavailable
-- Optional `Auto / Claude / Codex / Coco / Off` Agent selection for the post-dictation shortcut
-- Signed automatic updates through Sparkle when release metadata is configured
+[Install](#build-and-install-from-source) · [How it works](#use-hushword) ·
+[Processing and privacy](#processing-and-privacy) · [Development](#development)
 
-## Install
+## Use Hushword
+
+1. Place the cursor where you want to write, then tap `Fn` to start recording.
+2. Speak, then tap `Fn` again. Hushword processes the whole recording and inserts
+   the selected transcript. If automatic paste is unavailable, use the clipboard.
+3. Optionally hold `Fn` for half a second after insertion to request an Agent
+   rewrite. Normal dictation does not require an Agent.
+
+| Action | Shortcut |
+|---|---|
+| Start or stop dictation | Tap `Fn`, or `Option + Space` |
+| Rewrite after insertion | Hold `Fn` for half a second |
+| Alternate rewrite shortcut | `Option + Shift + Space` |
+
+Choose the Agent in Settings: `Auto / Claude / Codex / Coco / Off`.
+See [processing and privacy](#processing-and-privacy) before enabling a provider.
+
+## What it does
+
+- **Stay in your app.** A compact HUD shows recording, processing and completion
+  without taking focus; the transcript returns to the original paste target.
+- **Recognize the whole utterance.** Apple Speech and local Whisper Q5 process
+  the same completed WAV in parallel. Lightweight rules choose between their
+  transcripts without starting a text-generation model.
+- **Keep technical terms useful.** Chinese, English, Japanese and Korean presets,
+  mixed Chinese-English terminology, a personal dictionary and narrow local
+  Correction Memory support repeated writing workflows.
+- **Keep dictation available during model setup.** The size- and SHA-256-verified
+  Q5 download runs in the background while Apple Speech remains available.
+  The bundled Apple Silicon Whisper runtime needs no Homebrew on the target Mac.
+- **Make rewriting optional.** Dictation and rewriting are separate steps.
+  A rewrite replaces only the unchanged insertion Hushword can verify; otherwise
+  it is copied to the clipboard and the existing text stays in place.
+
+Whisper runs locally, and history and settings stay under
+`~/Library/Application Support/Hushword`. **Apple Speech may use Apple's service;
+Agent rewrites send text to the selected external provider.** This is not an
+on-device-only workflow. Details are below.
+
+## Build and install from source
 
 Hushword currently targets Apple Silicon Macs running macOS 13.3 or newer.
 
 ```bash
+git clone https://github.com/mynotwo/hushword.git
+cd hushword
 ./scripts/install.sh
 ```
 
 The script builds the app and its pinned `whisper.cpp` runtime, ad-hoc signs the
 bundle, copies it to `/Applications/Hushword.app`, and opens it. Building from
-source requires Swift, CMake, and the macOS Command Line Tools. Running the
+source requires Swift 6.0 or newer, CMake, and the macOS Command Line Tools. Running the
 installed app does not require Homebrew or CMake.
+
+The installer replaces any existing `/Applications/Hushword.app` and closes a
+running Hushword before opening the new build. This is a source-build route,
+not a notarized public installer.
 
 On first use, macOS asks for:
 
@@ -69,7 +96,10 @@ swift build
 ./scripts/build_app.sh
 ```
 
-See `CONTEXT.md` for the domain language, module map, and refactoring invariants.
+See [CONTEXT.md](CONTEXT.md) for the domain language, module map, and refactoring
+invariants. A focused bug report should include macOS version, Apple chip,
+shortcut, selected recognizer/Agent and the observed behavior. Use a synthetic
+utterance rather than private recordings or dictation history.
 
 ## Distribution
 
@@ -131,7 +161,10 @@ not become replacements.
 
 ## Scope
 
-This MVP covers the core system-wide dictation workflow. It does not include account sync, usage billing, mobile clients, or Typeless-specific proprietary behavior.
+This MVP covers system-wide dictation; account sync, usage billing and mobile
+clients are outside its current scope. The workflow was inspired by Typeless.
+Hushword is an independent implementation and uses no Typeless code, branding
+or services.
 
 ## Processing and privacy
 
@@ -148,9 +181,10 @@ Normal dictation does not wait for an Agent. Manual rewrite sends the displayed
 text to the selected external provider. After local dictation has been inserted,
 holding `Fn` for half a second sends that transcript to the Agent selected in
 Settings and replaces only the unchanged insertion Hushword recorded. `Auto`
-uses a prewarmed Claude Haiku session when Claude is installed, otherwise a
+prefers a ready Claude or Codex session, then falls back to an available Claude,
+Codex or Coco provider. The fast paths use a prewarmed Claude session or a
 dedicated ephemeral Codex app-server session. If the target or text can no
 longer be verified safely, Hushword copies the rewrite and leaves the existing
-text alone. Hushword stops a long-press rewrite that cannot finish within three
+text alone. Hushword stops a long-press rewrite that cannot finish within two
 seconds, leaving the original text unchanged. Coco remains available as a
 slower manual full-Agent rewrite.
