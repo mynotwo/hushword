@@ -2,8 +2,8 @@
 
 Speak, then get back to what you were writing. Hushword is a native macOS menu
 bar dictation app that inserts your transcript into the app you were using.
-It combines local Whisper with Apple Speech, with an optional Agent shortcut
-when you want a rewrite after dictation.
+Audio stays on your Mac by default: local Whisper and Apple's on-device speech
+models transcribe the same recording, and nothing is sent to an AI service.
 
 **Apple Silicon · macOS 13.3+ · Build from source**
 
@@ -15,17 +15,13 @@ when you want a rewrite after dictation.
 1. Place the cursor where you want to write, then tap `Fn` to start recording.
 2. Speak, then tap `Fn` again. Hushword processes the whole recording and inserts
    the selected transcript. If automatic paste is unavailable, use the clipboard.
-3. Optionally hold `Fn` for half a second after insertion to request an Agent
-   rewrite. Normal dictation does not require an Agent.
 
 | Action | Shortcut |
 |---|---|
 | Start or stop dictation | Tap `Fn`, or `Option + Space` |
-| Rewrite after insertion | Hold `Fn` for half a second |
-| Alternate rewrite shortcut | `Option + Shift + Space` |
 
-Choose the Agent in Settings: `Auto / Claude / Codex / Coco / Off`.
-See [processing and privacy](#processing-and-privacy) before enabling a provider.
+Settings has one privacy switch, **Keep audio on this Mac** (on by default).
+See [processing and privacy](#processing-and-privacy).
 
 ## What it does
 
@@ -40,14 +36,13 @@ See [processing and privacy](#processing-and-privacy) before enabling a provider
 - **Keep dictation available during model setup.** The size- and SHA-256-verified
   Q5 download runs in the background while Apple Speech remains available.
   The bundled Apple Silicon Whisper runtime needs no Homebrew on the target Mac.
-- **Make rewriting optional.** Dictation and rewriting are separate steps.
-  A rewrite replaces only the unchanged insertion Hushword can verify; otherwise
-  it is copied to the clipboard and the existing text stays in place.
+- **Never rewrite your meaning.** Cleanup removes fillers, repetitions and
+  spoken formatting commands. No language model rewrites the transcript.
 
-Whisper runs locally, and history and settings stay under
-`~/Library/Application Support/Hushword`. **Apple Speech may use Apple's service;
-Agent rewrites send text to the selected external provider.** This is not an
-on-device-only workflow. Details are below.
+Recordings, history, settings and Correction Memory stay under
+`~/Library/Application Support/Hushword`. The only network traffic is the
+one-time Whisper model download, update checks in release builds, and Apple
+Speech server recognition if you turn **Keep audio on this Mac** off.
 
 ## Build and install from source
 
@@ -98,7 +93,7 @@ swift build
 
 See [CONTEXT.md](CONTEXT.md) for the domain language, module map, and refactoring
 invariants. A focused bug report should include macOS version, Apple chip,
-shortcut, selected recognizer/Agent and the observed behavior. Use a synthetic
+shortcut, language, the Keep-audio setting and the observed behavior. Use a synthetic
 utterance rather than private recordings or dictation history.
 
 ## Distribution
@@ -134,8 +129,7 @@ with no developer tools and verify:
 - first launch, icon, Gatekeeper, microphone, Speech Recognition, Accessibility
 - refusal of each permission and later re-authorization
 - no network, interrupted model download, checksum failure, and Retry
-- normal dictation with no Claude, Codex, or Coco installed
-- each configured Agent while signed in and while signed out
+- dictation in each language preset with Keep audio on this Mac on and off
 - automatic update from the previous notarized public version
 
 ## Text commands
@@ -168,23 +162,17 @@ or services.
 
 ## Processing and privacy
 
-Hushword records one complete local WAV, then provides that same recording to
+Hushword records one complete local WAV, then gives that same recording to
 Apple Speech and a prewarmed local Whisper Q5 recognizer in parallel. Whisper
-runs on this Mac. Apple Speech may use Apple's service because Hushword does not
-force on-device-only recognition. Hushword selects between their complete
-transcripts with lightweight deterministic rules. On first launch, the 574 MB
-Q5 model downloads and is verified by size and SHA-256 in the background; Apple
-Speech remains available during that setup. Normal dictation has no Qwen
-adapter; Q8 and Qwen are not required or loaded.
+runs on this Mac. Hushword picks between the two complete transcripts with
+lightweight deterministic rules; it never generates words of its own.
 
-Normal dictation does not wait for an Agent. Manual rewrite sends the displayed
-text to the selected external provider. After local dictation has been inserted,
-holding `Fn` for half a second sends that transcript to the Agent selected in
-Settings and replaces only the unchanged insertion Hushword recorded. `Auto`
-prefers a ready Claude or Codex session, then falls back to an available Claude,
-Codex or Coco provider. The fast paths use a prewarmed Claude session or a
-dedicated ephemeral Codex app-server session. If the target or text can no
-longer be verified safely, Hushword copies the rewrite and leaves the existing
-text alone. Hushword stops a long-press rewrite that cannot finish within two
-seconds, leaving the original text unchanged. Coco remains available as a
-slower manual full-Agent rewrite.
+With **Keep audio on this Mac** on (the default), Apple Speech runs only with
+on-device models: `SFSpeechRecognizer` with `requiresOnDeviceRecognition`, or the
+on-device `DictationTranscriber` on macOS 26. If a language has no on-device Apple
+model, Whisper transcribes alone. Turning the switch off lets Apple Speech use
+Apple's servers, which can help accuracy for some languages.
+
+On first launch, the 574 MB Q5 model downloads and is verified by size and
+SHA-256 in the background; Apple Speech remains available during that setup.
+Hushword has no accounts, analytics or AI rewrite service.

@@ -9,6 +9,7 @@
 - **Recognition Evidence** — text, confidence, alternatives, and timing returned directly by Apple or Whisper.
 - **Correction Memory** — local, user-confirmed spelling preferences; manual entries outrank automatically observed corrections.
 - **Terminology Hint** — a repeated technical term from local history that may bias recognition but can never replace transcript text.
+- **Keep Audio On Mac** — the single privacy setting; when on, Apple Speech uses only on-device models.
 - **Paste Target** — the last regular external application selected before a Dictation Session and locked until insertion completes.
 - **Presentation Snapshot** — the consistent recording flag, HUD phase, and microphone level published to AppKit.
 - **Local Model Server** — a supervised loopback HTTP process whose lifecycle is owned by Hushword.
@@ -56,7 +57,8 @@ LocalHTTPServerProcess
 - Local development keeps the designated requirement `com.local.hushword`;
   customer releases inject one permanent, owned bundle identifier and must
   never change it after public distribution.
-- Normal dictation has no automatic Qwen adapter. Any future local polish path requires measured quality and resource validation before implementation.
+- Hushword sends no dictated text to an AI service. There is no rewrite or polish path; any future local polish must run on-device and pass measured quality and resource validation first.
+- `AppSettings.keepAudioOnMac` (default true) selects `SpeechRecognitionPolicy.onDeviceOnly`. Apple recognition must return empty rather than use a server when it is set.
 - Q8 and Qwen must not be required for the default install.
 - Recognition must not run on streaming fragments while recording. Apple and Whisper start only after stop and receive the same complete WAV.
 - Recognition Evidence is immutable. Candidate selection may choose only text returned by a recognizer; it must not synthesize words.
@@ -65,7 +67,7 @@ LocalHTTPServerProcess
 - Terminology Hints come only from repeated distinctive terms in local history. They influence recognition prompts but never rewrite text.
 - Correction Memory comes only from a direct, stable user edit inside the just-pasted range. It stores narrow spelling preferences locally; manual dictionary entries always win.
 - Transcript cleanup may remove explicit fillers, repetitions, and spoken formatting commands, then normalize surface formatting. It must not infer new semantic content.
-- Refactors must preserve sentence endings, `Fn` toggle behavior, automatic paste, mixed Chinese-English terminology, real microphone waveform, and reasonable stop-to-paste latency.
+- Refactors must preserve sentence endings, `Fn` tap-to-toggle behavior, on-device-by-default recognition, automatic paste, mixed Chinese-English terminology, real microphone waveform, and reasonable stop-to-paste latency.
 
 ## Verification
 
