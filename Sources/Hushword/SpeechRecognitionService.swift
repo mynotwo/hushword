@@ -98,12 +98,14 @@ final class SpeechRecognitionService: SpeechCapturing {
     private var recordingURL: URL?
     private var recordingLocaleIdentifier = ""
     private var recordingContextualStrings: [String] = []
+    private var recordingPolicy = SpeechRecognitionPolicy.onDeviceOnly
     private var audioActivityTracker = AudioActivityTracker()
     private var wholeRecordingAppleSession: WholeRecordingAppleSession?
 
     func start(
         localeIdentifier: String,
         contextualStrings: [String],
+        recognitionPolicy: SpeechRecognitionPolicy,
         onAudioLevel: @escaping (Double) -> Void
     ) async throws {
         whisperFinalizer.prewarm()
@@ -122,6 +124,7 @@ final class SpeechRecognitionService: SpeechCapturing {
         audioActivityTracker = AudioActivityTracker()
         recordingLocaleIdentifier = localeIdentifier
         recordingContextualStrings = contextualStrings
+        recordingPolicy = recognitionPolicy
 
         do {
             try startWholeRecordingCapture(onAudioLevel: onAudioLevel)
@@ -140,6 +143,7 @@ final class SpeechRecognitionService: SpeechCapturing {
         let audioURL = finishAudioRecording()
         let localeIdentifier = recordingLocaleIdentifier
         let contextualStrings = recordingContextualStrings
+        let recognitionPolicy = recordingPolicy
         let recordingHasSpeech = audioActivityTracker.detectedSpeech
         recordingLocaleIdentifier = ""
         recordingContextualStrings = []
@@ -173,7 +177,8 @@ final class SpeechRecognitionService: SpeechCapturing {
             let transcript = await self?.recognizeWholeRecordingWithApple(
                 audioURL: audioURL,
                 localeIdentifier: localeIdentifier,
-                contextualStrings: contextualStrings
+                contextualStrings: contextualStrings,
+                policy: recognitionPolicy
             ) ?? ""
             return (transcript, clock.now)
         }
@@ -254,12 +259,14 @@ final class SpeechRecognitionService: SpeechCapturing {
     private func recognizeWholeRecordingWithApple(
         audioURL: URL,
         localeIdentifier: String,
-        contextualStrings: [String]
+        contextualStrings: [String],
+        policy: SpeechRecognitionPolicy
     ) async -> String {
         let legacyTranscript = await recognizeWholeRecordingWithLegacyApple(
             audioURL: audioURL,
             localeIdentifier: localeIdentifier,
-            contextualStrings: contextualStrings
+            contextualStrings: contextualStrings,
+            policy: policy
         )
         guard legacyTranscript.isEmpty,
               #available(macOS 26.0, *) else {
@@ -276,15 +283,17 @@ final class SpeechRecognitionService: SpeechCapturing {
     private func recognizeWholeRecordingWithLegacyApple(
         audioURL: URL,
         localeIdentifier: String,
-        contextualStrings: [String]
+        contextualStrings: [String],
+        policy: SpeechRecognitionPolicy
     ) async -> String {
         guard let recognizer = SFSpeechRecognizer(
             locale: Locale(identifier: localeIdentifier)
-        ), recognizer.isAvailable else {
+        ), recognizer.isAvailable,
+        !policy.requiresOnDeviceRecognition
+            || recognizer.supportsOnDeviceRecognition else {
             return ""
         }
         let request = SFSpeechURLRecognitionRequest(url: audioURL)
-        let policy = SpeechRecognitionPolicy.highAccuracy
         request.shouldReportPartialResults = false
         request.requiresOnDeviceRecognition = policy.requiresOnDeviceRecognition
         request.addsPunctuation = policy.addsPunctuation

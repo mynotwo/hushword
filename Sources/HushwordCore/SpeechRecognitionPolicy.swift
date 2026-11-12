@@ -4,10 +4,23 @@ public struct SpeechRecognitionPolicy: Sendable {
     public let requiresOnDeviceRecognition: Bool
     public let addsPunctuation: Bool
 
-    public static let highAccuracy = SpeechRecognitionPolicy(
+    /// Apple's recognizer may send audio to Apple's servers.
+    public static let serverAllowed = SpeechRecognitionPolicy(
         requiresOnDeviceRecognition: false,
         addsPunctuation: true
     )
+
+    /// Apple's recognizer must not send audio off this Mac. Locales without
+    /// an on-device model fall back to the modern on-device transcriber or to
+    /// Whisper alone.
+    public static let onDeviceOnly = SpeechRecognitionPolicy(
+        requiresOnDeviceRecognition: true,
+        addsPunctuation: true
+    )
+
+    public static func dictation(keepAudioOnMac: Bool) -> SpeechRecognitionPolicy {
+        keepAudioOnMac ? .onDeviceOnly : .serverAllowed
+    }
 }
 
 public enum SpeechRecognitionVocabularyPolicy {

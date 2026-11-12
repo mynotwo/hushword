@@ -53,7 +53,7 @@ struct OnboardingView: View {
             localModel
 
             HStack {
-                Text("Apple Speech may use Apple's service. Local Whisper runs on this Mac. Agent rewrite is optional and uses your chosen provider.")
+                Text("Audio stays on this Mac by default. You can let Apple Speech use Apple's servers in Settings.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -80,9 +80,9 @@ struct OnboardingView: View {
             Divider()
                 .padding(.vertical, 4)
             shortcut(
-                key: "Fn",
-                title: "Hold to rewrite",
-                detail: "Optional. Requires your own signed-in Agent."
+                key: "⌥␣",
+                title: "Or use Option-Space",
+                detail: "Same toggle, for keyboards without Fn."
             )
         }
         .padding(.vertical, 14)

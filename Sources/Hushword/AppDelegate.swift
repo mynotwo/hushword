@@ -30,21 +30,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 switch action {
                 case .localDictation:
                     self.model.toggleRecording()
-                case .agentRewrite:
-                    _ = self.model.rewriteAndReplaceLastOutput()
                 }
             }
         }
-        functionKeyMonitor = FunctionKeyMonitor(
-            shortPressAction: {
-                Task { @MainActor in
-                    self.model.toggleRecording()
-                }
-            },
-            longPressAction: {
-                self.model.rewriteAndReplaceLastOutput()
+        functionKeyMonitor = FunctionKeyMonitor {
+            Task { @MainActor in
+                self.model.toggleRecording()
             }
-        )
+        }
         if model.shouldPresentOnboarding {
             let controller = SettingsWindowController(
                 rootView: OnboardingView(

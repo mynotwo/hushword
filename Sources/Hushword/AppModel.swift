@@ -63,22 +63,15 @@ final class AppModel: ObservableObject {
     }
     @Published private(set) var lastOutput = ""
     @Published private(set) var history: [HistoryItem] = []
-    @Published private(set) var aiRewriteProvider: AIProvider? {
-        didSet {
-            publishPresentation()
-        }
-    }
     @Published private(set) var hasAccessibilityPermission = false
     @Published private(set) var whisperModelState: WhisperModelState = .notInstalled
     @Published private(set) var microphonePermission: SystemPermissionState = .notDetermined
     @Published private(set) var speechRecognitionPermission: SystemPermissionState = .notDetermined
-    @Published private(set) var availableAgentProviders = Set<AIProvider>()
     @Published private(set) var onboardingVersion = 0
     @Published var autoPaste = true
     @Published var selectedLanguage = "zh-CN"
     @Published var personalDictionaryText = ""
-    @Published var polishMode: AIPolishMode = .natural
-    @Published var agentPreference = AgentPreference.auto
+    @Published var keepAudioOnMac = true
 
     var onPresentationChanged: ((DictationPresentation) -> Void)? {
         didSet {
@@ -89,7 +82,6 @@ final class AppModel: ObservableObject {
     private let dictationEngine = DictationEngine()
     private let inserter = TextInserter()
     private let store = AppStore()
-    private let aiRewriteService = AIRewriteService()
     private let pasteTarget = PasteTargetTracker()
     private let whisperModelManager = WhisperModelManager()
     private let endToEndTimingStore = EndToEndTimingStore()
@@ -97,14 +89,9 @@ final class AppModel: ObservableObject {
     private var startRecordingTask: Task<Bool, Never>?
     private var deferredRecordingStart = DeferredRecordingStart()
     private var activeDictationContext: DictationContext?
-    private var lastInsertionObservation: CorrectionObservation?
     private var endToEndTimingSession: EndToEndTimingSession?
     private var learnedCorrections: [LearnedCorrection] = []
     private var correctionObservationTask: Task<Void, Never>?
-    private var aiRewriteTask: Task<Void, Never>?
-    private var fastRewritePreparationTask: Task<Void, Never>?
-    private var readyFastRewriteProviders = Set<AIProvider>()
-    private var aiRewriteRequestID: UUID?
     private var cancellables = Set<AnyCancellable>()
 
     init() {
@@ -112,14 +99,13 @@ final class AppModel: ObservableObject {
         autoPaste = settings.autoPaste
         selectedLanguage = settings.language
         personalDictionaryText = settings.dictionaryText
-        agentPreference = settings.agentPreference
+        keepAudioOnMac = settings.keepAudioOnMac
         onboardingVersion = settings.onboardingVersion
         history = store.loadHistory()
         lastOutput = history.first?.text ?? ""
         learnedCorrections = store.loadLearnedCorrections()
         hasAccessibilityPermission = inserter.hasAccessibilityPermission
         refreshPermissions()
-        refreshAgentAvailability()
         whisperModelState = whisperModelManager.state
         whisperModelManager.$state
             .receive(on: RunLoop.main)
@@ -134,15 +120,10 @@ final class AppModel: ObservableObject {
             }
             .store(in: &cancellables)
         whisperModelManager.prepareIfNeeded()
-        prepareFastRewrite()
     }
 
     var isRecording: Bool {
         presentation.isRecording
-    }
-
-    var isAIRewriting: Bool {
-        aiRewriteProvider != nil
     }
 
     var whisperModelStatusText: String {
@@ -151,13 +132,6 @@ final class AppModel: ObservableObject {
 
     var whisperModelDownloadProgress: Double? {
         whisperModelManager.downloadProgress
-    }
-
-    var agentAvailabilityStatus: AgentAvailabilityStatus {
-        AgentAvailabilityPolicy.status(
-            preference: agentPreference,
-            availableProviders: availableAgentProviders
-        )
     }
 
     var shouldPresentOnboarding: Bool {
@@ -191,8 +165,7 @@ final class AppModel: ObservableObject {
     private var presentation: DictationPresentation {
         DictationPresentation(
             lifecycleState: lifecycleState,
-            audioLevel: audioLevel,
-            isAIRewriting: isAIRewriting
+            audioLevel: audioLevel
         )
     }
 
@@ -201,14 +174,10 @@ final class AppModel: ObservableObject {
     }
 
     var statusTitle: String {
-        if let aiRewriteProvider {
-            return "\(aiRewriteProvider.rawValue.capitalized) rewriting…"
-        }
-        return status.title
+        status.title
     }
 
     func toggleRecording() {
-        guard !isAIRewriting else { return }
         switch DictationControlPolicy.toggleAction(for: lifecycleState) {
         case .start:
             startRecording()
@@ -237,6 +206,9 @@ final class AppModel: ObservableObject {
                 try await dictationEngine.start(
                     localeIdentifier: selectedLanguage,
                     context: context,
+                    recognitionPolicy: SpeechRecognitionPolicy.dictation(
+                        keepAudioOnMac: keepAudioOnMac
+                    ),
                     onAudioLevel: { [weak self] level in
                         guard let self, self.isRecording else { return }
                         self.audioLevel = AudioLevelPolicy.smoothedLevel(
@@ -302,7 +274,6 @@ final class AppModel: ObservableObject {
 
         lastOutput = finalTranscript
         recordHistory(finalTranscript)
-        lastInsertionObservation = nil
 
         let shouldAutoPaste = autoPaste
         endToEndTimingSession?.autoPaste = shouldAutoPaste
@@ -315,7 +286,6 @@ final class AppModel: ObservableObject {
             switch attempt.result {
             case .pasted:
                 status = .success
-                lastInsertionObservation = attempt.correctionObservation
                 observeCorrection(from: attempt.correctionObservation)
                 finishEndToEndTiming(
                     outcome: .pasted,
@@ -367,17 +337,7 @@ final class AppModel: ObservableObject {
         startRecordingTask = nil
         correctionObservationTask?.cancel()
         correctionObservationTask = nil
-        aiRewriteTask?.cancel()
-        aiRewriteTask = nil
-        fastRewritePreparationTask?.cancel()
-        fastRewritePreparationTask = nil
-        Task { [aiRewriteService] in
-            await aiRewriteService.shutdownFastRewrite()
-        }
-        aiRewriteRequestID = nil
-        aiRewriteProvider = nil
         activeDictationContext = nil
-        lastInsertionObservation = nil
         deferredRecordingStart.consume()
         pasteTarget.unlock()
         dictationEngine.shutdown()
@@ -392,205 +352,6 @@ final class AppModel: ObservableObject {
         inserter.copy(item.text)
     }
 
-    func rewriteLastOutput(with provider: AIProvider) {
-        rewriteLastOutput(with: provider, replacingLastInsertion: false)
-    }
-
-    @discardableResult
-    func rewriteAndReplaceLastOutput() -> Bool {
-        guard canRewriteLastOutput else {
-            return false
-        }
-        guard let provider = selectedAgentProvider else {
-            status = .error(agentAvailabilityStatus.detail)
-            return false
-        }
-        rewriteLastOutput(
-            with: provider,
-            replacingLastInsertion: true
-        )
-        return true
-    }
-
-    private var selectedAgentProvider: AIProvider? {
-        AgentProviderSelection.resolve(
-            preference: agentPreference,
-            availableProviders: aiRewriteService.availableProviders(),
-            readyProviders: readyFastRewriteProviders
-        )
-    }
-
-    private var canRewriteLastOutput: Bool {
-        !lastOutput.isEmpty
-            && !isRecording
-            && status != .processing
-            && !isAIRewriting
-    }
-
-    private func rewriteLastOutput(
-        with provider: AIProvider,
-        replacingLastInsertion: Bool
-    ) {
-        guard canRewriteLastOutput else { return }
-        let requestID = UUID()
-        let sourceText = lastOutput
-        let mode = polishMode
-        let observation = replacingLastInsertion
-            ? lastInsertionObservation
-            : nil
-        let timeoutNanoseconds = replacingLastInsertion
-            ? AgentRewritePolicy.longPressTimeoutNanoseconds
-            : nil
-        aiRewriteRequestID = requestID
-        aiRewriteProvider = provider
-
-        aiRewriteTask = Task { [weak self] in
-            guard let self else { return }
-            defer {
-                finishAIRewrite(requestID: requestID)
-            }
-            do {
-                let rewritten: String
-                if replacingLastInsertion,
-                   provider == .claude || provider == .codex,
-                   let timeoutNanoseconds {
-                    rewritten = try await aiRewriteService.rewriteFast(
-                        sourceText,
-                        with: provider,
-                        mode: mode,
-                        timeoutNanoseconds: timeoutNanoseconds
-                    )
-                } else {
-                    rewritten = try await aiRewriteService.rewrite(
-                        sourceText,
-                        with: provider,
-                        mode: mode,
-                        timeoutNanoseconds: timeoutNanoseconds
-                    )
-                }
-                guard !Task.isCancelled,
-                      aiRewriteRequestID == requestID else {
-                    return
-                }
-                lastOutput = rewritten
-                recordHistory(rewritten)
-                if replacingLastInsertion {
-                    correctionObservationTask?.cancel()
-                    correctionObservationTask = nil
-                    let attempt = await inserter.replace(
-                        rewritten,
-                        using: observation
-                    )
-                    switch attempt.result {
-                    case .pasted:
-                        lastInsertionObservation = nil
-                        status = .success
-                    case .copiedAccessibilityPermissionRequired:
-                        status = .copied(
-                            "Copied. Enable Accessibility to replace the last dictation."
-                        )
-                    case .copiedTargetUnavailable:
-                        status = .copied(
-                            "Copied. The last dictation was not replaced."
-                        )
-                    case .copyFailed:
-                        status = .error("Could not copy the rewrite.")
-                    }
-                } else {
-                    inserter.copy(rewritten)
-                    status = .success
-                }
-            } catch is CancellationError {
-            } catch {
-                if aiRewriteRequestID == requestID {
-                    status = .error(error.localizedDescription)
-                }
-                if replacingLastInsertion {
-                    prepareFastRewrite(provider: provider)
-                }
-            }
-        }
-    }
-
-    private func prepareFastRewrite(
-        provider: AIProvider? = nil,
-        resetSession: Bool = false
-    ) {
-        guard fastRewritePreparationTask == nil else { return }
-        fastRewritePreparationTask = Task { [weak self] in
-            guard let self else { return }
-            if resetSession {
-                await aiRewriteService.shutdownFastRewrite()
-                guard !Task.isCancelled else { return }
-                readyFastRewriteProviders.removeAll()
-            }
-            let availableProviders = aiRewriteService.availableProviders()
-            let providers: [AIProvider]
-            if let provider {
-                providers = [provider]
-            } else {
-                switch agentPreference {
-                case .auto:
-                    providers = [.claude, .codex]
-                        .filter(availableProviders.contains)
-                case .claude:
-                    providers = [.claude]
-                case .codex:
-                    providers = [.codex]
-                case .coco, .off:
-                    providers = []
-                }
-            }
-            for provider in providers where availableProviders.contains(
-                provider
-            ) {
-                if await aiRewriteService.prepareFastRewrite(
-                    provider: provider
-                ) {
-                    readyFastRewriteProviders.insert(provider)
-                    if agentPreference == .auto {
-                        break
-                    }
-                } else {
-                    readyFastRewriteProviders.remove(provider)
-                }
-            }
-            guard !Task.isCancelled else { return }
-            fastRewritePreparationTask = nil
-        }
-    }
-
-    private func finishAIRewrite(requestID: UUID) {
-        guard aiRewriteRequestID == requestID else { return }
-        aiRewriteRequestID = nil
-        aiRewriteProvider = nil
-        aiRewriteTask = nil
-        let completedStatus = status
-        switch completedStatus {
-        case .success, .copied, .error:
-            break
-        case .idle, .requestingPermission, .listening, .processing:
-            return
-        }
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 1_200_000_000)
-            guard let self,
-                  aiRewriteProvider == nil,
-                  status == completedStatus else {
-                return
-            }
-            status = .idle
-        }
-    }
-
-    func cancelAIRewrite() {
-        aiRewriteTask?.cancel()
-        aiRewriteTask = nil
-        aiRewriteRequestID = nil
-        aiRewriteProvider = nil
-        status = .idle
-    }
-
     func clearHistory() {
         history = []
         store.saveHistory([])
@@ -602,14 +363,10 @@ final class AppModel: ObservableObject {
                 autoPaste: autoPaste,
                 language: selectedLanguage,
                 dictionaryText: personalDictionaryText,
-                agentPreference: agentPreference,
+                keepAudioOnMac: keepAudioOnMac,
                 onboardingVersion: onboardingVersion
             )
         )
-        refreshAgentAvailability()
-        fastRewritePreparationTask?.cancel()
-        fastRewritePreparationTask = nil
-        prepareFastRewrite(resetSession: true)
     }
 
     func requestAccessibilityPermission() {
@@ -675,10 +432,6 @@ final class AppModel: ObservableObject {
     func completeOnboarding() {
         onboardingVersion = OnboardingPolicy.currentVersion
         saveSettings()
-    }
-
-    func refreshAgentAvailability() {
-        availableAgentProviders = aiRewriteService.availableProviders()
     }
 
     func checkForUpdates() {
@@ -878,20 +631,21 @@ package struct AppSettings: Codable {
     package var autoPaste = true
     package var language = "zh-CN"
     package var dictionaryText = ""
-    package var agentPreference = AgentPreference.auto
+    /// When true, Apple Speech runs only with on-device models.
+    package var keepAudioOnMac = true
     package var onboardingVersion = 0
 
     package init(
         autoPaste: Bool = true,
         language: String = "zh-CN",
         dictionaryText: String = "",
-        agentPreference: AgentPreference = .auto,
+        keepAudioOnMac: Bool = true,
         onboardingVersion: Int = 0
     ) {
         self.autoPaste = autoPaste
         self.language = language
         self.dictionaryText = dictionaryText
-        self.agentPreference = agentPreference
+        self.keepAudioOnMac = keepAudioOnMac
         self.onboardingVersion = onboardingVersion
     }
 
@@ -899,7 +653,7 @@ package struct AppSettings: Codable {
         case autoPaste
         case language
         case dictionaryText
-        case agentPreference
+        case keepAudioOnMac
         case onboardingVersion
     }
 
@@ -917,10 +671,10 @@ package struct AppSettings: Codable {
             String.self,
             forKey: .dictionaryText
         ) ?? ""
-        agentPreference = try values.decodeIfPresent(
-            AgentPreference.self,
-            forKey: .agentPreference
-        ) ?? .auto
+        keepAudioOnMac = try values.decodeIfPresent(
+            Bool.self,
+            forKey: .keepAudioOnMac
+        ) ?? true
         onboardingVersion = try values.decodeIfPresent(
             Int.self,
             forKey: .onboardingVersion

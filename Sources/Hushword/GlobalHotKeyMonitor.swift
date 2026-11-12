@@ -3,7 +3,6 @@ import Carbon
 
 package enum GlobalHotKeyAction: Equatable {
     case localDictation
-    case agentRewrite
 }
 
 package struct GlobalHotKeyShortcut: Equatable {
@@ -18,12 +17,6 @@ package struct GlobalHotKeyShortcut: Equatable {
         modifiers: UInt32(optionKey),
         action: .localDictation
     )
-    package static let agentRewrite = GlobalHotKeyShortcut(
-        identifier: 2,
-        keyCode: UInt32(kVK_Space),
-        modifiers: UInt32(optionKey | shiftKey),
-        action: .agentRewrite
-    )
 }
 
 @MainActor
@@ -36,7 +29,6 @@ final class GlobalHotKeyMonitor {
     init(
         shortcuts: [GlobalHotKeyShortcut] = [
             .localDictation,
-            .agentRewrite,
         ],
         action: @escaping (GlobalHotKeyAction) -> Void
     ) {

@@ -14,11 +14,15 @@ struct SettingsView: View {
                     Text("한국어").tag("ko-KR")
                 }
                 Toggle("Insert into the active app automatically", isOn: $model.autoPaste)
-                LabeledContent("Local dictation", value: "Tap Fn or ⌥ Space")
-                LabeledContent(
-                    "Fast rewrite last dictation",
-                    value: "Hold Fn or ⌥⇧ Space"
+                LabeledContent("Start or stop", value: "Tap Fn or ⌥ Space")
+                Toggle("Keep audio on this Mac", isOn: $model.keepAudioOnMac)
+                Text(
+                    model.keepAudioOnMac
+                        ? "Apple Speech uses only on-device models. If your language has none, Whisper transcribes alone."
+                        : "Apple Speech may send audio to Apple's servers for higher accuracy."
                 )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Local transcription") {
@@ -65,35 +69,8 @@ struct SettingsView: View {
                     )
             }
 
-            Section("Optional AI rewrite") {
-                Picker("Fn rewrite Agent", selection: $model.agentPreference) {
-                    Text("Auto").tag(AgentPreference.auto)
-                    Text("Claude").tag(AgentPreference.claude)
-                    Text("Codex").tag(AgentPreference.codex)
-                    Text("Coco").tag(AgentPreference.coco)
-                    Text("Off").tag(AgentPreference.off)
-                }
-                Picker("Style", selection: $model.polishMode) {
-                    Text("Natural").tag(AIPolishMode.natural)
-                    Text("Concise").tag(AIPolishMode.concise)
-                    Text("Professional").tag(AIPolishMode.professional)
-                    Text("Casual").tag(AIPolishMode.casual)
-                }
-                LabeledContent(
-                    model.agentAvailabilityStatus.title,
-                    value: model.agentAvailabilityStatus.selectedProvider == nil
-                        ? "Unavailable" : "Ready"
-                )
-                Text(model.agentAvailabilityStatus.detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("Agent rewrite is bring-your-own-Agent. The selected provider may receive the transcript. Slow or unavailable results never replace the original text.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
             Section("Permissions") {
-                Text("Microphone captures audio. Apple Speech may use Apple's speech service. Accessibility is required only for automatic paste.")
+                Text("Microphone captures audio. Speech Recognition enables Apple's recognizer. Accessibility is required only for automatic paste.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 LabeledContent(
@@ -127,7 +104,7 @@ struct SettingsView: View {
                         model.openPrivacyPolicy()
                     }
                 }
-                Text("Local Whisper audio and correction memory stay on this Mac. Apple Speech and optional Agent rewrite follow those providers' privacy terms.")
+                Text("Recordings, Whisper transcription, history, and correction memory stay on this Mac. Hushword has no account, analytics, or AI rewrite service.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 LabeledContent(

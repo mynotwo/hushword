@@ -19,6 +19,7 @@ package protocol SpeechCapturing: AnyObject {
     func start(
         localeIdentifier: String,
         contextualStrings: [String],
+        recognitionPolicy: SpeechRecognitionPolicy,
         onAudioLevel: @escaping (Double) -> Void
     ) async throws
 
@@ -41,11 +42,13 @@ package final class DictationEngine {
     func start(
         localeIdentifier: String,
         context: DictationContext,
+        recognitionPolicy: SpeechRecognitionPolicy,
         onAudioLevel: @escaping (Double) -> Void
     ) async throws {
         try await speechCapture.start(
             localeIdentifier: localeIdentifier,
             contextualStrings: context.recognitionTerms,
+            recognitionPolicy: recognitionPolicy,
             onAudioLevel: onAudioLevel
         )
     }

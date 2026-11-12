@@ -8,23 +8,16 @@ final class FunctionKeyMonitor {
     private var eventTap: CFMachPort?
     private var eventTapRunLoopSource: CFRunLoopSource?
     private var state = FunctionKeyClickState()
-    private var longPressTask: Task<Void, Never>?
-    private let shortPressAction: () -> Void
-    private let longPressAction: () -> Bool
+    private let tapAction: () -> Void
 
-    init(
-        shortPressAction: @escaping () -> Void,
-        longPressAction: @escaping () -> Bool
-    ) {
-        self.shortPressAction = shortPressAction
-        self.longPressAction = longPressAction
+    init(tapAction: @escaping () -> Void) {
+        self.tapAction = tapAction
         if !installEventTap() {
             installMonitors()
         }
     }
 
     deinit {
-        longPressTask?.cancel()
         if let eventTap {
             CGEvent.tapEnable(tap: eventTap, enable: false)
         }
@@ -101,8 +94,6 @@ final class FunctionKeyMonitor {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             Task { @MainActor [weak self] in
                 guard let self else { return }
-                longPressTask?.cancel()
-                longPressTask = nil
                 state.reset()
                 if let eventTap {
                     CGEvent.tapEnable(tap: eventTap, enable: true)
@@ -153,30 +144,8 @@ final class FunctionKeyMonitor {
             functionPressed: functionPressed,
             hasOtherModifiers: hasOtherModifiers
         )
-        switch action {
-        case .startedPress:
-            longPressTask?.cancel()
-            longPressTask = Task { @MainActor [weak self] in
-                try? await Task.sleep(
-                    nanoseconds: AgentRewritePolicy
-                        .longPressActivationNanoseconds
-                )
-                guard !Task.isCancelled, let self else { return }
-                if state.consumeLongPress() == .longPress,
-                   !longPressAction() {
-                    state.cancelLongPress()
-                }
-                longPressTask = nil
-            }
-        case .shortPress:
-            longPressTask?.cancel()
-            longPressTask = nil
-            shortPressAction()
-        case .longPress, .none:
-            if !functionPressed {
-                longPressTask?.cancel()
-                longPressTask = nil
-            }
+        if action == .shortPress {
+            tapAction()
         }
     }
 }

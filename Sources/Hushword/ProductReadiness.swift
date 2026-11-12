@@ -19,77 +19,10 @@ package enum SystemPermissionState: Equatable {
 }
 
 package enum OnboardingPolicy {
-    package static let currentVersion = 1
+    package static let currentVersion = 2
 
     package static func shouldPresent(completedVersion: Int) -> Bool {
         completedVersion < currentVersion
-    }
-}
-
-package struct AgentAvailabilityStatus: Equatable {
-    package let selectedProvider: AIProvider?
-    package let title: String
-    package let detail: String
-}
-
-package enum AgentAvailabilityPolicy {
-    package static func status(
-        preference: AgentPreference,
-        availableProviders: Set<AIProvider>
-    ) -> AgentAvailabilityStatus {
-        if preference == .off {
-            return AgentAvailabilityStatus(
-                selectedProvider: nil,
-                title: "Agent rewrite is off",
-                detail: "Dictation still works without an Agent."
-            )
-        }
-
-        let selectedProvider: AIProvider?
-        switch preference {
-        case .auto:
-            selectedProvider = [.claude, .codex, .coco].first(
-                where: availableProviders.contains
-            )
-        case .claude:
-            selectedProvider = availableProviders.contains(.claude)
-                ? .claude : nil
-        case .codex:
-            selectedProvider = availableProviders.contains(.codex)
-                ? .codex : nil
-        case .coco:
-            selectedProvider = availableProviders.contains(.coco)
-                ? .coco : nil
-        case .off:
-            selectedProvider = nil
-        }
-
-        if let selectedProvider {
-            let name = selectedProvider.displayName
-            return AgentAvailabilityStatus(
-                selectedProvider: selectedProvider,
-                title: "\(name) detected",
-                detail: "\(name) is a third-party provider. Hushword uses your existing installation and account for optional rewrites."
-            )
-        }
-
-        let requestedName: String?
-        switch preference {
-        case .auto, .off:
-            requestedName = nil
-        case .claude:
-            requestedName = "Claude"
-        case .codex:
-            requestedName = "Codex"
-        case .coco:
-            requestedName = "Coco"
-        }
-        return AgentAvailabilityStatus(
-            selectedProvider: nil,
-            title: requestedName.map { "\($0) not detected" }
-                ?? "No Agent detected",
-            detail: "Dictation still works without an Agent. To use Hold Fn, install and sign in to \(requestedName ?? "Claude, Codex, or Coco")."
-        )
     }
 }
 
@@ -141,20 +74,5 @@ package struct ProductLinks: Equatable {
             return nil
         }
         return url
-    }
-}
-
-private extension AIProvider {
-    var displayName: String {
-        switch self {
-        case .none:
-            return "Agent"
-        case .claude:
-            return "Claude"
-        case .codex:
-            return "Codex"
-        case .coco:
-            return "Coco"
-        }
     }
 }

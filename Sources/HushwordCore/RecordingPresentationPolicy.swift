@@ -24,15 +24,12 @@ public struct DictationPresentation: Equatable, Sendable {
 
     public init(
         lifecycleState: DictationLifecycleState,
-        audioLevel: Double,
-        isAIRewriting: Bool = false
+        audioLevel: Double
     ) {
         let isRecording = lifecycleState == .requestingPermission
             || lifecycleState == .listening
         self.isRecording = isRecording
-        hudPhase = isAIRewriting
-            ? .processing
-            : RecordingPresentationPolicy.hudPhase(for: lifecycleState)
+        hudPhase = RecordingPresentationPolicy.hudPhase(for: lifecycleState)
         self.audioLevel = isRecording
             ? min(1, max(0, audioLevel))
             : 0

@@ -33,7 +33,7 @@ struct MenuBarView: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text("Tap Fn  Dictate")
-                Text("Hold Fn  Rewrite last")
+                Text("⌥ Space  Dictate")
             }
             .font(.caption2.monospaced())
             .padding(.horizontal, 8)
@@ -105,37 +105,6 @@ struct MenuBarView: View {
                 .foregroundStyle(displayedText.isEmpty ? .secondary : .primary)
                 .frame(maxWidth: .infinity, minHeight: 58, alignment: .topLeading)
                 .textSelection(.enabled)
-            if !model.lastOutput.isEmpty {
-                HStack(spacing: 8) {
-                    if let provider = model.aiRewriteProvider {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("\(provider.displayName) is rewriting…")
-                            .font(.caption)
-                        Spacer()
-                        Button("Cancel") {
-                            model.cancelAIRewrite()
-                        }
-                    } else {
-                        Button("Claude rewrite") {
-                            model.rewriteLastOutput(with: .claude)
-                        }
-                        Button("Coco rewrite") {
-                            model.rewriteLastOutput(with: .coco)
-                        }
-                        Spacer()
-                    }
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                Text(
-                    model.isAIRewriting
-                        ? "Fn rewrite stops within three seconds; manual rewrites can take longer."
-                        : "Fn uses your selected Agent; slow results never replace the original."
-                )
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
         }
         .padding(12)
         .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
@@ -192,16 +161,5 @@ struct MenuBarView: View {
             Button("Quit") { NSApp.terminate(nil) }
         }
         .buttonStyle(.link)
-    }
-}
-
-private extension AIProvider {
-    var displayName: String {
-        switch self {
-        case .none: return "AI"
-        case .claude: return "Claude"
-        case .codex: return "Codex"
-        case .coco: return "Coco"
-        }
     }
 }

@@ -205,31 +205,6 @@ let tests: [(String, () throws -> Void)] = [
             )
         }
     }),
-    ("builds a constrained concise polish prompt", {
-        let prompt = AIPolishPrompt.build(
-            text: "嗯这个事情我们明天再说",
-            mode: .concise
-        )
-        guard prompt.contains("不得添加原文没有的事实"),
-              prompt.contains("只输出润色后的正文"),
-              prompt.contains("简洁") else {
-            throw TestFailure(description: "prompt is missing safety or mode instructions: \(prompt)")
-        }
-    }),
-    ("sanitizes fenced AI output", {
-        try expectEqual(
-            AIOutputSanitizer.sanitize("```text\n润色后的正文。\n```"),
-            "润色后的正文。",
-            "sanitizes fenced AI output"
-        )
-    }),
-    ("sanitizes explanatory AI prefix", {
-        try expectEqual(
-            AIOutputSanitizer.sanitize("润色结果：\n这件事明天下午再讨论。"),
-            "这件事明天下午再讨论。",
-            "sanitizes explanatory AI prefix"
-        )
-    }),
     ("borrows safe Apple punctuation without replacing Whisper terminology", {
         let cleaner = TranscriptCleaner()
         let whisper = cleaner.clean(
@@ -366,84 +341,6 @@ let tests: [(String, () throws -> Void)] = [
             )
         }
     }),
-    ("builds a tool-free Claude command", {
-        let command = AICommandBuilder.build(
-            provider: .claude,
-            prompt: "polish me",
-            homeDirectory: "/Users/test",
-            outputFile: "/tmp/output.txt"
-        )
-        guard command.executable == "/Users/test/.local/bin/claude",
-              command.arguments.contains("--safe-mode"),
-              command.arguments.contains("--no-session-persistence"),
-              command.arguments.contains("--disable-slash-commands"),
-              command.arguments.contains("--tools"),
-              command.arguments.contains("") else {
-            throw TestFailure(description: "unsafe Claude command: \(command)")
-        }
-    }),
-    ("builds a persistent Codex app-server command", {
-        let command = AICommandBuilder.buildCodexSession(
-            homeDirectory: "/Users/test"
-        )
-        guard command.executable == "/Users/test/.local/bin/codex",
-              command.arguments == ["app-server", "--stdio"],
-              !command.arguments.contains("exec") else {
-            throw TestFailure(
-                description: "Codex rewrite does not use app-server: \(command)"
-            )
-        }
-    }),
-    ("finds a Hermes-installed Codex executable", {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent(
-                "hushword-codex-location-\(UUID().uuidString)",
-                isDirectory: true
-            )
-        let binDirectory = directory.appendingPathComponent(
-            ".hermes/node/bin",
-            isDirectory: true
-        )
-        try FileManager.default.createDirectory(
-            at: binDirectory,
-            withIntermediateDirectories: true
-        )
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let executableURL = binDirectory.appendingPathComponent("codex")
-        try "#!/bin/sh\n".write(
-            to: executableURL,
-            atomically: true,
-            encoding: .utf8
-        )
-        try FileManager.default.setAttributes(
-            [.posixPermissions: 0o755],
-            ofItemAtPath: executableURL.path
-        )
-
-        let command = AICommandBuilder.buildCodexSession(
-            homeDirectory: directory.path
-        )
-        guard command.executable == executableURL.path else {
-            throw TestFailure(
-                description: "Hermes Codex was not discovered: \(command)"
-            )
-        }
-    }),
-    ("builds a read-only ephemeral Coco command", {
-        let command = AICommandBuilder.build(
-            provider: .coco,
-            prompt: "polish me",
-            homeDirectory: "/Users/test",
-            outputFile: "/tmp/output.txt"
-        )
-        guard command.executable == "/Users/test/.local/bin/coco",
-              command.arguments.contains("--ignore-user-config"),
-              command.arguments.contains("--ephemeral"),
-              command.arguments.contains("read-only"),
-              command.arguments.contains("/tmp/output.txt") else {
-            throw TestFailure(description: "unsafe Coco command: \(command)")
-        }
-    }),
     ("uses a short Fn press for dictation", {
         var state = FunctionKeyClickState()
         guard state.consume(
@@ -457,37 +354,21 @@ let tests: [(String, () throws -> Void)] = [
             throw TestFailure(description: "short Fn press did not toggle dictation")
         }
     }),
-    ("uses a long Fn press only for Agent rewrite", {
+    ("never swallows a Fn release, however long the press", {
         var state = FunctionKeyClickState()
         guard state.consume(
             functionPressed: true,
             hasOtherModifiers: false
         ) == .startedPress,
-        state.consumeLongPress() == .longPress,
+        state.consume(
+            functionPressed: true,
+            hasOtherModifiers: false
+        ) == .none,
         state.consume(
             functionPressed: false,
             hasOtherModifiers: false
-        ) == .none else {
-            throw TestFailure(description: "long Fn press also toggled dictation")
-        }
-    }),
-    ("falls back to a short Fn press when long press is unavailable", {
-        var state = FunctionKeyClickState()
-        guard state.consume(
-            functionPressed: true,
-            hasOtherModifiers: false
-        ) == .startedPress,
-        state.consumeLongPress() == .longPress else {
-            throw TestFailure(description: "Fn long press was not recognized")
-        }
-        state.cancelLongPress()
-        guard state.consume(
-            functionPressed: false,
-            hasOtherModifiers: false
         ) == .shortPress else {
-            throw TestFailure(
-                description: "unavailable Fn long press swallowed dictation"
-            )
+            throw TestFailure(description: "a held Fn did not toggle dictation")
         }
     }),
     ("recovers Fn after its event stream is interrupted", {
@@ -540,27 +421,18 @@ let tests: [(String, () throws -> Void)] = [
     ("publishes one consistent presentation snapshot", {
         let listening = DictationPresentation(
             lifecycleState: .listening,
-            audioLevel: 1.5,
-            isAIRewriting: false
+            audioLevel: 1.5
         )
         let processing = DictationPresentation(
             lifecycleState: .processing,
-            audioLevel: 1,
-            isAIRewriting: false
-        )
-        let rewriting = DictationPresentation(
-            lifecycleState: .idle,
-            audioLevel: 0,
-            isAIRewriting: true
+            audioLevel: 1
         )
         guard listening.isRecording,
               listening.hudPhase == .listening,
               listening.audioLevel == 1,
               processing.isRecording == false,
               processing.hudPhase == .processing,
-              processing.audioLevel == 0,
-              rewriting.isRecording == false,
-              rewriting.hudPhase == .processing else {
+              processing.audioLevel == 0 else {
             throw TestFailure(description: "presentation fields can drift out of sync")
         }
     }),
@@ -666,11 +538,14 @@ let tests: [(String, () throws -> Void)] = [
             throw TestFailure(description: "accessibility could be prompted automatically")
         }
     }),
-    ("uses the highest-accuracy dictation recognition settings", {
-        let policy = SpeechRecognitionPolicy.highAccuracy
-        guard policy.requiresOnDeviceRecognition == false,
-              policy.addsPunctuation else {
-            throw TestFailure(description: "speech recognition is still configured for lower accuracy")
+    ("keeps Apple recognition on this Mac unless the user opts out", {
+        let onDevice = SpeechRecognitionPolicy.dictation(keepAudioOnMac: true)
+        let server = SpeechRecognitionPolicy.dictation(keepAudioOnMac: false)
+        guard onDevice.requiresOnDeviceRecognition,
+              onDevice.addsPunctuation,
+              server.requiresOnDeviceRecognition == false,
+              server.addsPunctuation else {
+            throw TestFailure(description: "Apple recognition can leave the Mac by default")
         }
     }),
     ("maps microphone energy to a stable HUD level", {

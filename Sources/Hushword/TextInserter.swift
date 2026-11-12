@@ -83,7 +83,7 @@ struct TextInserter {
                 try? await Task.sleep(nanoseconds: 50_000_000)
             case .paste:
                 let activationDuration = activationStartedAt.duration(to: clock.now)
-                let correctionObservation = CorrectionObservation.capture(
+                let prePasteObservation = CorrectionObservation.capture(
                     insertedText: text,
                     application: application
                 )
@@ -93,23 +93,15 @@ struct TextInserter {
                 let result: InsertionResult = didPaste
                     ? .pasted
                     : .copiedTargetUnavailable
-                var completedObservation = correctionObservation
-                if didPaste {
-                    var completedSelection = completedObservation?
-                        .completeSelectionSnapshotAfterPaste() ?? false
-                    for _ in 0..<5 where !completedSelection {
+                var completedObservation = prePasteObservation
+                if didPaste, completedObservation == nil {
+                    for _ in 0..<5 where completedObservation == nil {
                         try? await Task.sleep(nanoseconds: 20_000_000)
-                        if let completedObservation {
-                            completedSelection = completedObservation
-                                .completeSelectionSnapshotAfterPaste()
-                        } else {
-                            completedObservation = CorrectionObservation
-                                .captureAfterPaste(
-                                    insertedText: text,
-                                    application: application
-                                )
-                            completedSelection = completedObservation != nil
-                        }
+                        completedObservation = CorrectionObservation
+                            .captureAfterPaste(
+                                insertedText: text,
+                                application: application
+                            )
                     }
                 }
                 return attempt(
@@ -128,61 +120,6 @@ struct TextInserter {
                 )
             }
         }
-    }
-
-    func replace(
-        _ text: String,
-        using observation: CorrectionObservation?
-    ) async -> InsertionAttempt {
-        let clock = ContinuousClock()
-        let startedAt = clock.now
-        guard copy(text) else {
-            return attempt(
-                result: .copyFailed,
-                activationDuration: .zero,
-                totalDuration: startedAt.duration(to: clock.now)
-            )
-        }
-        guard hasAccessibilityPermission else {
-            return attempt(
-                result: .copiedAccessibilityPermissionRequired,
-                activationDuration: .zero,
-                totalDuration: startedAt.duration(to: clock.now)
-            )
-        }
-        guard let observation,
-              observation.selectInsertedTextForReplacement() else {
-            return attempt(
-                result: .copiedTargetUnavailable,
-                activationDuration: .zero,
-                totalDuration: startedAt.duration(to: clock.now)
-            )
-        }
-        if case .deleteBackward(let characterCount) =
-            observation.replacementAction,
-           !postDeleteBackward(
-            count: characterCount,
-            to: observation.targetProcessIdentifier
-           ) {
-            return attempt(
-                result: .copiedTargetUnavailable,
-                activationDuration: .zero,
-                totalDuration: startedAt.duration(to: clock.now)
-            )
-        }
-        guard
-              postPasteShortcut(to: observation.targetProcessIdentifier) else {
-            return attempt(
-                result: .copiedTargetUnavailable,
-                activationDuration: .zero,
-                totalDuration: startedAt.duration(to: clock.now)
-            )
-        }
-        return attempt(
-            result: .pasted,
-            activationDuration: .zero,
-            totalDuration: startedAt.duration(to: clock.now)
-        )
     }
 
     func requestAccessibilityPermission() {
@@ -241,34 +178,6 @@ struct TextInserter {
         keyUp.flags = .maskCommand
         keyDown.postToPid(processIdentifier)
         keyUp.postToPid(processIdentifier)
-        return true
-    }
-
-    private func postDeleteBackward(
-        count: Int,
-        to processIdentifier: pid_t
-    ) -> Bool {
-        guard count > 0,
-              let source = CGEventSource(stateID: .combinedSessionState) else {
-            return false
-        }
-        for _ in 0..<count {
-            guard let keyDown = CGEvent(
-                keyboardEventSource: source,
-                virtualKey: 51,
-                keyDown: true
-            ),
-            let keyUp = CGEvent(
-                keyboardEventSource: source,
-                virtualKey: 51,
-                keyDown: false
-            ) else {
-                return false
-            }
-            keyDown.postToPid(processIdentifier)
-            keyUp.postToPid(processIdentifier)
-            Thread.sleep(forTimeInterval: 0.005)
-        }
         return true
     }
 
