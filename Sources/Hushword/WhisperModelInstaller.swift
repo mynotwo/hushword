@@ -126,22 +126,6 @@ package enum WhisperModelInstaller {
         return installedURL
     }
 
-    package static func isInstalledModelValid(
-        asset: WhisperModelAsset,
-        modelsDirectory: URL,
-        fileManager: FileManager = .default
-    ) -> Bool {
-        let installedURL = modelsDirectory.appendingPathComponent(asset.fileName)
-        guard let attributes = try? fileManager.attributesOfItem(
-            atPath: installedURL.path
-        ),
-        (attributes[.size] as? NSNumber)?.int64Value
-            == asset.expectedByteCount else {
-            return false
-        }
-        return (try? sha256(of: installedURL)) == asset.sha256.lowercased()
-    }
-
     package static func modelsDirectory(
         fileManager: FileManager = .default
     ) -> URL {
