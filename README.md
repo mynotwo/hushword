@@ -82,6 +82,9 @@ artifact is not suitable for public sale.
 
 ## Development
 
+The repository checks are the four commands below; CI
+(`.github/workflows/ci.yml`) runs exactly these on a macOS runner:
+
 ```bash
 # Core behavior tests
 swift run HushwordCoreTests
@@ -89,6 +92,16 @@ swift run HushwordCoreTests
 # App orchestration and local-process integration tests
 swift run HushwordAppKitTests
 
+# Release build of the app executable
+swift build -c release --product Hushword
+
+# Whitespace errors in uncommitted changes
+git diff --check
+```
+
+Other development commands:
+
+```bash
 # Debug build
 swift build
 

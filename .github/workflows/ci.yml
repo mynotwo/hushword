@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    # The sources reference macOS 26 SDK symbols (DictationTranscriber), so
+    # the runner must ship Xcode 26. The steps mirror the README's
+    # Development checks one for one.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: core-tests
+        run: swift run HushwordCoreTests
+      - name: appkit-tests
+        run: swift run HushwordAppKitTests
+      - name: release-build
+        run: swift build -c release --product Hushword
+      - name: whitespace
+        run: git diff --check
