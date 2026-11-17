@@ -201,3 +201,9 @@ longer be verified safely, Hushword copies the rewrite and leaves the existing
 text alone. Hushword stops a long-press rewrite that cannot finish within two
 seconds, leaving the original text unchanged. Coco remains available as a
 slower manual full-Agent rewrite.
+
+## License
+
+Hushword is released under the [Apache License 2.0](LICENSE). Sparkle and
+whisper.cpp are separate projects that Hushword builds against; they remain
+under their own licences.
